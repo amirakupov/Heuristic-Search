@@ -6,12 +6,13 @@ from statistics import mean, stdev
 
 class Puzzle8Solver:
     def __init__(self, initial_state):
+        # Initialize the solver with goal state, initial state, and size
         self.goal_state = np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]])
         self.initial_state = np.array(initial_state)
         self.size = 3
 
     def find_blank(self, state):
-        # Finds the empty tile
+        # Finds the coordinates of the empty tile (0)
         for i in range(self.size):
             for j in range(self.size):
                 if state[i][j] == 0:
@@ -21,6 +22,7 @@ class Puzzle8Solver:
         # Moves the tile in the specified direction
         i, j = self.find_blank(state)
         if direction == 'up' and i > 0:
+            # Swap the empty tile with the tile above it
             new_state = state.copy()
             new_state[i][j], new_state[i - 1][j] = new_state[i - 1][j], new_state[i][j]
             return new_state
@@ -56,43 +58,49 @@ class Puzzle8Solver:
             print(" ".join(map(str, row)))
         print()
 
-    # Existing code remains mostly the same
-
     def a_star_search(self, heuristic_func, visualize=False):
+        # Initialize an open list (priority queue) and a closed list (set of visited states)
         open_list = []
         closed_list = set()
 
+        # Push the initial state with its heuristic value, cost, and state bytes into the open list
         heapq.heappush(open_list, (heuristic_func(self.initial_state), 0, self.initial_state.tobytes()))
 
+        # Record the start time for measuring execution time
         start_time = time.time()
-        expanded_nodes = 0
+        expanded_nodes = 0  # Counter to track the number of expanded nodes
 
+        # A* search algorithm loop
         while open_list:
-            _, cost, current_state = heapq.heappop(open_list)
-            current_state = np.frombuffer(current_state, dtype=int).reshape((self.size, self.size))
+            _, cost, current_state = heapq.heappop(open_list)  # Pop the state with the lowest f-value
+            current_state = np.frombuffer(current_state, dtype=int).reshape(
+                (self.size, self.size))  # Convert state bytes to a 2D array
+
+            # Check if the current state is the goal state
             if self.is_goal(current_state):
                 end_time = time.time()
                 execution_time = end_time - start_time
                 print(f"Solution found in {execution_time:.6f} seconds.")
                 print("Total number of expanded nodes:", expanded_nodes)
-                return cost, expanded_nodes
+                return cost, expanded_nodes  # Return cost and total expanded nodes
 
-            current_state_str = current_state.tobytes()
+            current_state_str = current_state.tobytes()  # Convert the state to bytes for efficient hashing
             if current_state_str not in closed_list:
-                closed_list.add(current_state_str)
-                expanded_nodes += 1
+                closed_list.add(current_state_str)  # Add the current state to the closed list
+                expanded_nodes += 1  # Increment the count of expanded nodes
 
-                i, j = self.find_blank(current_state)
+                i, j = self.find_blank(current_state)  # Find the empty tile position
                 directions = ['up', 'down', 'left', 'right']
                 for direction in directions:
-                    new_state = self.move(current_state, direction)
+                    new_state = self.move(current_state,
+                                          direction)  # Generate new states by moving in different directions
                     if new_state is not None:
-                        new_cost = cost + 1
-                        heapq.heappush(open_list, (
-                            new_cost + heuristic_func(new_state), new_cost, new_state.tobytes()))
+                        new_cost = cost + 1  # Increment the cost for the new state
+                        heapq.heappush(open_list, (new_cost + heuristic_func(new_state), new_cost,
+                                                   new_state.tobytes()))  # Push the new state with updated cost and heuristic value to the open list
 
         print("No solution found.")
-        return None, expanded_nodes
+        return None, expanded_nodes  # Return None and the total expanded nodes when no solution is found
 
     def h_hamming(self, state):
         # Hamming heuristic (number of misplaced tiles)
